@@ -10,3 +10,5 @@ Run the test suite:
  - [AoC Kotlin blog](https://blog.jetbrains.com/kotlin/2023/11/advent-of-code-2023-with-kotlin/)
 
  - [Kotlin leaderboard 3](https://adventofcode.com/2023/leaderboard/private/view/3240094)
+
+ - [Private leaderboard](https://adventofcode.com/2023/leaderboard/private/view/19851)
