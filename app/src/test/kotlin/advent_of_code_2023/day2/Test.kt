@@ -17,8 +17,10 @@ class MyTest {
                     .trim('\n')
                     .lines().withIndex().mapNotNull { line ->
                         (line.index + 1).takeIf {
-                            line.value
-                                .findAnyOf(invalidEntries) == null
+                            listOf("red" to 12, "green" to 13, "blue" to 14).
+                                all {
+                                    line.value.getColor(it.first).max() <= it.second
+                                }
                         }
                     }
                     .sum()
@@ -30,7 +32,7 @@ class MyTest {
     @Test
     fun B() {
         assertEquals(
-            "",
+            "66016 ",
             Days.getInput(day).let { it
                 .trim('\n')
                 .lines()
@@ -46,11 +48,6 @@ class MyTest {
         )
     }
 }
-
-val invalidEntries = listOf(12 to "red", 13 to "green", 14 to "blue")
-    .flatMap { (maxNumber, color) ->
-        ((maxNumber+1)..100).map { "$it $color" }
-    }
 
 fun String.getColor(color: String) = reg.get("([0-9]+) $color")
     .findAll(this)
