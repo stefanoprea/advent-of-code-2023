@@ -3,6 +3,7 @@ package advent_of_code_2023.day12
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import advent_of_code_2023.Days
+import java.math.BigInteger
 
 
 class MyTest {
@@ -19,11 +20,10 @@ class MyTest {
                     .map {
                         val (a, b) = it.split(" ", limit=2)
                         val nn = b.split(",").map(String::toInt)
-                        a
-                            .replaceS()
-                            .count { it.toGroups() == nn }
+                        a to nn
                     }
-                    .sum()
+                    .map { (a, nn) -> a.solve(nn) }
+                    .reduce(BigInteger::plus)
                     .toString()
             },
         )
@@ -32,56 +32,73 @@ class MyTest {
     @Test
     fun B() {
         assertEquals(
-            "",
+            "10861030975833",
             Days.getInput(day).let {
                 it
                     .trim('\n')
                     .lines()
-                    .first()
+                    .map {
+                        val (a, b) = it.split(" ", limit=2)
+                        val nn = b.split(",").map(String::toInt)
+                        val A = List<String>(5) { a }.joinToString("?")
+                        val NN = List<List<Int>>(5) { nn }.flatten()
+                        A to NN
+                    }
+                    .map { (a, nn) -> a.solve(nn) }
+                    .reduce(BigInteger::plus)
+                    .toString()
             },
         )
     }
 }
 
-fun String.toGroups() : List<Int> {
-    val groups = mutableListOf<Int>()
-    var c = 0
-    (this + ".").toCharArray().forEach {
-        when (it) {
-            '.' -> if (c != 0) {
-                groups.add(c)
-                c = 0
-            }
-            '#' -> c = c + 1
-            else -> error("bad spring $it")
+fun String.solve(nn: List<Int>) : BigInteger = (this + ".")
+    .toCharArray()
+    .fold(DP(listOf(), listOf(Dsp(listOf(), 1.toBigInteger())))) { old, c ->
+        val d = DP(listOf(), old.ongoing + old.finished).clean()
+        val h = DP(
+            old.ongoing.map {
+                Dsp(
+                    it.groups.dropLast(1) + listOf(it.groups.last() + 1),
+                    it.count
+                )
+            } +
+                    old.finished.map {
+                        Dsp(
+                            it.groups + listOf(1),
+                            it.count
+                        )
+                    },
+            listOf(),
+        ).clean()
+        val q = DP(d.ongoing + h.ongoing, d.finished + h.finished).clean()
+        val r = when (c) {
+            '.' -> d
+            '#' -> h
+            '?' -> q
+            else -> error("oops")
+        }
+        r.purge(nn)
+    }
+    .finished.firstOrNull { it.groups == nn }?.count?: 0.toBigInteger()
+
+data class DP(val ongoing: List<Dsp>, val finished: List<Dsp>) {
+    companion object {
+        fun (List<Dsp>).clean() = this.groupBy({ it.groups }) { it.count }.entries.map { (k, v) -> Dsp(k, v.reduce(BigInteger::plus)) }
+
+        fun (List<Int>).matchesStart(other: List<Int>) = when {
+            this.size > other.size -> false
+            other.take(this.size) == this -> true
+            else -> false
         }
     }
-    return groups.toList()
+
+    fun clean() = DP(ongoing.clean(), finished.clean())
+
+    fun purge(x: List<Int>) = DP(
+        ongoing.filter { it.groups.isEmpty() || it.groups.dropLast(1).matchesStart(x) },
+        finished.filter { it.groups.matchesStart(x) },
+    )
 }
 
-fun String.replaceS() : List<String> {
-    val arr = this.toCharArray()
-    val t = arr.count { it == '?' }
-    return (0..<2.pow(t)).map {
-        var mask = it
-        arr.map {
-            when (it) {
-                '?' -> run {
-                    val bit = mask and 1
-                    mask = mask shr 1
-                    when (bit) {
-                        1 -> '.'
-                        else -> '#'
-                    }
-                }
-                else -> it
-            }
-        }.joinToString("")
-    }
-}
-
-tailrec fun Int.pow(exp: Int) : Int = when {
-    exp == 0 -> 1
-    exp > 0 -> this * this.pow(exp - 1)
-    else -> error("called pow with negative exponent")
-}
+data class Dsp(val groups: List<Int>, val count: BigInteger)
